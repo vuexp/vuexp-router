@@ -1,4 +1,6 @@
 import { install } from "./install";
+import { resolvePath, parsePath } from "./util/path";
+import Vue from "./vue";
 
 const appMode = process.env.VUE_APP_MODE;
 
@@ -15,26 +17,44 @@ export default class VuexpRouter {
       throw "Vuexp Router: Router configuration must be defined!";
     }
 
-    this.initCurrentRoute(options.Vue);
+    this.initCurrentRoute();
 
     this.routes = options.routes;
-
-    // Register vue router to vuexp router
-    this.vueRouter = null;
-    if (appMode === "web") {
-      if (options.hasOwnProperty("vueRouter")) {
-        this.vueRouter = options.vueRouter;
-      } else {
-        throw "Vue router required!";
-      }
-    }
+    this.optimizedRoutes = this.optimizeRoutes(this.routes);
 
     this.routeHistory = [];
+
+    this.app = null;
   }
 
-  init(Vue) {}
+  optimizeRoutes(routes) {
+    let optimized = [];
 
-  initCurrentRoute(Vue) {
+    const buildRoute = (route, parentRoute) => {
+      optimized.push({
+        path: parentRoute ? parentRoute.path + "/" + route.path : route.path,
+        component: route.component,
+      });
+
+      if (route.children) {
+        for (const child of route.children) {
+          buildRoute(child, route);
+        }
+      }
+    };
+
+    routes.forEach(route => {
+      buildRoute(route);
+    });
+
+    return optimized;
+  }
+
+  init(app) {
+    this.app = app;
+  }
+
+  initCurrentRoute() {
     console.log("init");
 
     let localVue = new Vue({ data: { vxpCurrentRoute: { path: "/" } } });
@@ -49,9 +69,27 @@ export default class VuexpRouter {
     });
   }
 
+  createRoute(path, query, params, fullPath, meta) {
+    return {
+      path: path || "/",
+      query: query || {},
+      params: params || {},
+      fullPath: fullPath || "/",
+      meta: meta || {}
+    };
+  }
+
+  getMatchedRoute(route) {}
+
   getRouteByPath(path) {
     //TODO add child route support
+    /*
     const route = this.routes.find(item => item.path === path);
+
+    if (!route) {
+    }*/
+
+    const route = this.optimizedRoutes.find(item => item.path === path);
 
     return route;
   }
@@ -79,25 +117,38 @@ export default class VuexpRouter {
   }
 
   get currentRoute() {
+    console.log("asdadasd");
+    console.log(this.routeHistory);
     return this.routeHistory[this.routeHistory.length - 1];
   }
 
-  goTo(param) {
-    console.log("Goto");
+  get history() {
+    return {
+      current: {
+        path: "/about/second",
+        query: {},
+        params: {},
+        fullPath: "/",
+        meta: {}
+      }
+    };
+  }
+
+  push(param) {
+    console.log("Push");
     if (typeof param === "string") {
       const route = this.getRouteByPath(param);
+      console.log("ROUTE");
       console.log(route);
 
+      //TODO sil
       this.localVue.vxpCurrentRoute = route;
 
-      if (appMode === "web") {
-        this.vueRouter.push(param);
+      if (route.hasOwnProperty("component")) {
+        this.routeHistory.push(route);
+        this.app.$route = route;
       } else {
-        if (route.hasOwnProperty("component")) {
-          this.updateHistory(route);
-        } else {
-          throw "Component undefined";
-        }
+        throw "Component undefined";
       }
     } else if (!(param instanceof Array) && param instanceof Object) {
       // literal string path

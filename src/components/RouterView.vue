@@ -4,6 +4,6 @@
 
 <script>
 export default {
-  name: "vuexp-router"
+  name: "RouterView"
 };
 </script>
