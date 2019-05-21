@@ -1,5 +1,4 @@
 import { install } from "./install";
-import { resolvePath, parsePath } from "./util/path";
 import Vue from "./vue";
 
 const appMode = process.env.VUE_APP_MODE;
@@ -21,6 +20,7 @@ export default class VuexpRouter {
 
     this.routes = options.routes;
     this.optimizedRoutes = this.optimizeRoutes(this.routes);
+    this.initDefaultRoute();
 
     this.routeHistory = [];
 
@@ -33,7 +33,7 @@ export default class VuexpRouter {
     const buildRoute = (route, parentRoute) => {
       optimized.push({
         path: parentRoute ? parentRoute.path + "/" + route.path : route.path,
-        component: route.component,
+        component: route.component
       });
 
       if (route.children) {
@@ -52,6 +52,12 @@ export default class VuexpRouter {
 
   init(app) {
     this.app = app;
+  }
+
+  initDefaultRoute() {
+    if (!this.optimizedRoutes.find(route => route.path === "/")) {
+      throw "Missing default '/' route";
+    }
   }
 
   initCurrentRoute() {
@@ -125,7 +131,7 @@ export default class VuexpRouter {
   get history() {
     return {
       current: {
-        path: "/about/second",
+        path: "/",
         query: {},
         params: {},
         fullPath: "/",

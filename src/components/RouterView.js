@@ -69,7 +69,8 @@ export default {
       );
     }
 
-    console.warn("Rendered: " + matched.component.name);
+    console.log(matched);
+
 
     //const matchedRoute = !pathArray.length ? route.optimizedRoutes.find(item => item.path === '/') : route.optimizedRoutes.
 
@@ -79,6 +80,7 @@ export default {
       cache[name] = null;
       return h();
     }
+    console.warn("Rendered: " + matched.component.name);
 
     const component = (cache[name] = matched.component);
 
