@@ -43,9 +43,6 @@ export function install(Vue) {
     get() {
       return this._routerRoot._route;
     },
-    set(route) {
-      this._routerRoot._route = route;
-    }
   });
 
   Vue.component("RouterView", RouterView);

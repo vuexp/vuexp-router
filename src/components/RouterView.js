@@ -2,8 +2,6 @@ export default {
   name: "RouterView",
   functional: true,
   render(_, { props, children, parent, data }) {
-    const routes = parent.$router.routes;
-
     const h = parent.$createElement;
 
     data.routerView = true;
@@ -31,11 +29,6 @@ export default {
     }
     data.routerViewDepth = depth;
 
-    console.log("routerView");
-    console.log(route);
-
-    //debugger;
-
     const optimizedRoute = parent.$router.optimizedRoutes.find(
       item => item.path === route.path
     );
@@ -44,11 +37,7 @@ export default {
       return h();
     }
 
-    console.log(optimizedRoute);
-
     const pathArray = optimizedRoute.path.split("/").filter(Boolean);
-
-    console.log(pathArray);
 
     let depthPath = "/";
 
@@ -56,8 +45,6 @@ export default {
       depthPath += pathArray[i] + "/";
     }
     depthPath = depthPath.slice(0, -1);
-
-    console.log(depthPath);
 
     let matched;
 
@@ -69,17 +56,13 @@ export default {
       );
     }
 
-    console.log(matched);
-
-    //const matchedRoute = !pathArray.length ? route.optimizedRoutes.find(item => item.path === '/') : route.optimizedRoutes.
-
     //const matched = route.matched[depth];
     // render empty node if no matched route
     if (!matched) {
       cache[name] = null;
       return h();
     }
-    console.warn("Rendered: " + matched.component.name);
+    console.log("Rendered: " + matched.component.name); //eslint-disable-line
 
     const component = (cache[name] = matched.component);
 

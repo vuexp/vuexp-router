@@ -1,7 +1,4 @@
-import Vue from "./vue";
 import { install } from "./install";
-
-const appMode = process.env.VUE_APP_MODE;
 
 export default class VuexpRouterNative {
   static install() {}
@@ -15,8 +12,6 @@ export default class VuexpRouterNative {
     ) {
       throw "Vuexp Router: Router configuration must be defined!";
     }
-
-    this.initCurrentRoute();
 
     this.routes = options.routes;
     this.optimizedRoutes = this.optimizeRoutes(this.routes);
@@ -60,21 +55,6 @@ export default class VuexpRouterNative {
     }
   }
 
-  initCurrentRoute() {
-    console.log("init");
-
-    let localVue = new Vue({ data: { vxpCurrentRoute: { path: "/" } } });
-    this.localVue = localVue;
-
-    Object.defineProperties(Vue.prototype, {
-      $vxpCurrentRoute: {
-        get() {
-          return localVue.vxpCurrentRoute;
-        }
-      }
-    });
-  }
-
   createRoute(path, query, params, fullPath, meta) {
     return {
       path: path || "/",
@@ -85,22 +65,13 @@ export default class VuexpRouterNative {
     };
   }
 
-  getMatchedRoute(route) {}
-
   getRouteByPath(path) {
-    //TODO add child route support
-    /*
-    const route = this.routes.find(item => item.path === path);
-
-    if (!route) {
-    }*/
-
-    const route = this.optimizedRoutes.find(item => item.path === path);
-
-    return route;
+    return this.optimizedRoutes.find(item => item.path === path);
   }
 
-  getRouteByName(name) {}
+  getRouteByName(name) {
+    return this.optimizedRoutes.find(item => item.name === name);
+  }
 
   /*
     // literal string path
@@ -115,18 +86,6 @@ export default class VuexpRouterNative {
     // with query, resulting in /register?plan=private
     router.push({ path: 'register', query: { plan: 'private' } })
    */
-
-  updateHistory(route) {
-    if (route) {
-      this.routeHistory.push(route);
-    }
-  }
-
-  get currentRoute() {
-    console.log("asdadasd");
-    console.log(this.routeHistory);
-    return this.routeHistory[this.routeHistory.length - 1];
-  }
 
   get history() {
     return {
@@ -144,15 +103,10 @@ export default class VuexpRouterNative {
     console.log("Push");
     if (typeof param === "string") {
       const route = this.getRouteByPath(param);
-      console.log("ROUTE");
-      console.log(route);
-
-      //TODO sil
-      this.localVue.vxpCurrentRoute = route;
 
       if (route.hasOwnProperty("component")) {
         this.routeHistory.push(route);
-        this.app.$route = route;
+        this.app._route = route;
       } else {
         throw "Component undefined";
       }
