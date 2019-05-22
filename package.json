@@ -2,7 +2,7 @@
   "name": "vuexp-router",
   "version": "0.0.1",
   "description": "Vuexp Router",
-  "main": "src/vuexp-router.js",
+  "main": "src/vuexp-router",
   "repository": {
     "type": "git",
     "url": "https://github.com/vuexp/vuexp-router.git"

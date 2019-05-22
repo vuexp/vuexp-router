@@ -71,7 +71,6 @@ export default {
 
     console.log(matched);
 
-
     //const matchedRoute = !pathArray.length ? route.optimizedRoutes.find(item => item.path === '/') : route.optimizedRoutes.
 
     //const matched = route.matched[depth];
@@ -84,6 +83,6 @@ export default {
 
     const component = (cache[name] = matched.component);
 
-    return h(component, data, children);
+    return h("Frame", {}, [h(component, data, children)]);
   }
 };
