@@ -42,7 +42,7 @@ export function install(Vue) {
   Object.defineProperty(Vue.prototype, "$route", {
     get() {
       return this._routerRoot._route;
-    },
+    }
   });
 
   Vue.component("RouterView", RouterView);
