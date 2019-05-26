@@ -1,7 +1,5 @@
 require("nativescript-globalevents"); // need only once in the application total
-const Page = require("ui/page").Page;
 import * as application from "tns-core-modules/application"; // eslint-disable-line
-import { topmost } from "tns-core-modules/ui/frame";
 import { install } from "./install";
 
 export default class VuexpRouterNative {
@@ -33,10 +31,11 @@ export default class VuexpRouterNative {
     let optimized = [];
 
     const buildRoute = (route, parentRoute) => {
-      optimized.push({
-        path: parentRoute ? parentRoute.path + "/" + route.path : route.path,
-        component: route.component
-      });
+      let optimizedRoute = route;
+      optimizedRoute.path = parentRoute
+        ? parentRoute.path + "/" + route.path
+        : route.path;
+      optimized.push(optimizedRoute);
 
       if (route.children) {
         for (const child of route.children) {
@@ -65,32 +64,7 @@ export default class VuexpRouterNative {
   }
 
   handleBackButton() {
-    if (application.ios) {
-      Page.on(Page.navigatingToEvent, event => {
-        if (event.isBackNavigation) {
-          console.log("routeIndex", this.routeIndex);
-
-          this.routeIndex--;
-
-          let route = this.routeHistory[this.routeIndex];
-          route.isBackNavigation = true;
-          this.app._route = route;
-        }
-      });
-    }
     if (application.android) {
-      Page.on(Page.navigatingToEvent, event => {
-        if (event.isBackNavigation) {
-          console.log("routeIndex", this.routeIndex);
-
-          this.routeIndex--;
-
-          let route = this.routeHistory[this.routeIndex];
-          route.isBackNavigation = true;
-          this.app._route = route;
-        }
-      });
-      /*
       application.android.on(
         application.AndroidApplication.activityBackPressedEvent,
         data => {
@@ -105,8 +79,6 @@ export default class VuexpRouterNative {
           }
         }
       );
-
-       */
     }
   }
 
@@ -144,10 +116,10 @@ export default class VuexpRouterNative {
 
   /*
     // literal string path
-    router.push('home')
+    router.push('home') --supported
     
     // object
-    router.push({ path: 'home' })
+    router.push({ path: 'home' }) --supported
     
     // named route
     router.push({ name: 'user', params: { userId: '123' } })
@@ -168,58 +140,88 @@ export default class VuexpRouterNative {
     };
   }
 
+  createRouteRecord(route, path, query, params, meta) {
+    return {
+      route: route,
+      component: route.component,
+      name: route.name,
+      path: path,
+      query: query,
+      params: params,
+      fullPath: path,
+      meta: meta
+    };
+  }
+
   push(param) {
-    console.log("Push");
+    console.log("Push", param);
+    let path;
+    let query = {};
+    let params = {};
+    let meta = {};
+    let useNames = false;
     if (typeof param === "string") {
-      const route = this.getRouteByPath(param);
-
-      if (route.hasOwnProperty("component")) {
-        this.routeHistory = this.routeHistory
-          .slice(0, this.routeIndex + 1)
-          .concat(route);
-        this.routeIndex++;
-
-        this.app._route = route;
-      } else {
-        throw "Component undefined";
-      }
+      // TODO check route params in string -- /user/evan -> /user/:username
+      path = param;
     } else if (!(param instanceof Array) && param instanceof Object) {
-      // literal string path
-      //ex: router.push('home')
+      if (param.hasOwnProperty("path")) {
+        path = param.path;
+      } else if (param.hasOwnProperty("name")) {
+        useNames = true;
+
+        if (param.hasOwnProperty("params")) {
+          params = param.params;
+        }
+      }
     } else {
       throw "Unsupported goTo param!";
     }
-    console.log("history:");
-    for (const route of this.routeHistory) {
-      console.log(route.path);
+
+    console.log("params", params);
+
+    // Finding Route
+    let route;
+
+    if (useNames) {
+      route = this.getRouteByName(param.name);
+    } else {
+      route = this.getRouteByPath(path);
     }
-    console.log("routeIndex:", this.routeIndex);
+
+    console.log("route", route);
+
+    if (route.hasOwnProperty("component")) {
+      let routeRecord = this.createRouteRecord(
+        route,
+        path ? path : route.path,
+        query,
+        params,
+        meta
+      );
+      console.log("routeRecord", routeRecord);
+      this.routeHistory = this.routeHistory
+        .slice(0, this.routeIndex + 1)
+        .concat(routeRecord);
+      this.routeIndex++;
+
+      this.app._route = routeRecord;
+    } else {
+      throw "Component undefined";
+    }
   }
 
   go(n) {
-    console.log("routeIndex:", this.routeIndex);
     const targetIndex = this.routeIndex + n;
     if (targetIndex < 0 || targetIndex >= this.routeHistory.length) {
       return;
     }
     let route = this.routeHistory[targetIndex];
-    route.isBackNavigation = false;
-    if (n === -1) {
-      route.isBackNavigation = true;
-    }
     this.routeIndex = targetIndex;
     this.app._route = route;
-
-    console.log("history:");
-    for (const route of this.routeHistory) {
-      console.log(route.path);
-    }
-    console.log("routeIndex1:", this.routeIndex);
   }
 
   back() {
-    topmost().goBack();
-    //this.go(-1);
+    this.go(-1);
   }
 
   forward() {

@@ -11,10 +11,12 @@ export default {
     const route = parent.$route;
     const cache = parent._routerViewCache || (parent._routerViewCache = {});
 
+    /*
     if (route.hasOwnProperty("isBackNavigation") && route.isBackNavigation) {
       console.log("isBackNavigation:", route.isBackNavigation);
       return h("Frame", {}, []);
     }
+     */
 
     // determine current view depth, also check to see if the tree
     // has been toggled inactive but kept-alive.
@@ -70,7 +72,8 @@ export default {
     console.log("Rendered: " + matched.component.name); //eslint-disable-line
 
     const component = (cache[name] = matched.component);
+    return h(component, data, children);
 
-    return h("Frame", {}, [h(component, data, children)]);
+    //return h("Frame", {}, [h(component, data, children)]);
   }
 };
