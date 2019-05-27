@@ -28,9 +28,16 @@ export default class VuexpRouterNative {
 
     this.app = null;
 
-    //routeMatch(this.optimizedRoutes, "/user/evan/post/123");
+    console.log("optimized: ");
+    for (const r of this.optimizedRoutes) {
+      console.log(r.path + " - " + r.component.name);
+      if (r.children) {
+        console.log("has children");
+      }
+    }
 
-    routeMatch(this.optimizedRoutes, "/about");
+    let p = routeMatch(this.optimizedRoutes, "/parent/");
+    console.log(p.optimizedRoute.component.name);
   }
 
   optimizeRoutes(routes) {
@@ -45,7 +52,15 @@ export default class VuexpRouterNative {
 
       if (route.children) {
         for (const child of route.children) {
-          buildRoute(child, route);
+          // NOTE absolute path here!
+          // this allows you to leverage the component nesting without being
+          // limited to the nested URL.
+          // components rendered at /baz: Root -> Parent -> Baz
+          if (child.path.startsWith("/")) {
+            buildRoute(child);
+          } else {
+            buildRoute(child, route);
+          }
         }
       }
     };
@@ -74,8 +89,8 @@ export default class VuexpRouterNative {
       application.android.on(
         application.AndroidApplication.activityBackPressedEvent,
         data => {
-          console.log("handle back button");
-          console.log("can go back:", this.canGoBack());
+          //console.log("handle back button");
+          //console.log("can go back:", this.canGoBack());
           data.cancel = true;
 
           if (this.canGoBack()) {
@@ -183,13 +198,15 @@ export default class VuexpRouterNative {
       throw "Unsupported goTo param!";
     }
 
-    console.log("params", params);
+    //console.log("params", params);
 
     // Finding Route
     let route;
 
     if (useNames) {
       route = this.getRouteByName(param.name);
+      console.log("named route");
+      console.log(route);
     } else {
       route = this.getRouteByPath(path);
     }
@@ -201,7 +218,7 @@ export default class VuexpRouterNative {
 
         const regexpResult = regexp.exec(param);
         if (regexpResult) {
-          console.log("FOUND");
+          //console.log("FOUND");
           route = optimizedRoute;
 
           for (const index in keys) {
@@ -209,13 +226,14 @@ export default class VuexpRouterNative {
             params[key.name] = regexpResult[parseInt(index) + 1];
           }
         }
-        console.log("params:", params);
+        //console.log("params:", params);
       }
     }
 
-    console.log("route", route);
+    //console.log("route", route);
 
     if (route && route.hasOwnProperty("component")) {
+      console.log("routeRecord found");
       let routeRecord = this.createRouteRecord(
         route,
         path ? path : route.path,
@@ -223,9 +241,9 @@ export default class VuexpRouterNative {
         params,
         meta
       );
-      console.log("routeRecord", routeRecord);
+      //console.log("routeRecord", routeRecord);
       if (routeRecord.component) {
-        console.log("componenntt");
+        //console.log("componenntt");
       }
       this.routeHistory = this.routeHistory
         .slice(0, this.routeIndex + 1)
