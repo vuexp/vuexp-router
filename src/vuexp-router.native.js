@@ -1,5 +1,7 @@
 require("nativescript-globalevents"); // need only once in the application total
 import * as application from "tns-core-modules/application"; // eslint-disable-line
+import Regexp from "path-to-regexp";
+import { routeMatch } from "./utils/routeMatcher";
 import { install } from "./install";
 
 export default class VuexpRouterNative {
@@ -25,6 +27,10 @@ export default class VuexpRouterNative {
     this.handleBackButton();
 
     this.app = null;
+
+    //routeMatch(this.optimizedRoutes, "/user/evan/post/123");
+
+    routeMatch(this.optimizedRoutes, "/about");
   }
 
   optimizeRoutes(routes) {
@@ -188,9 +194,28 @@ export default class VuexpRouterNative {
       route = this.getRouteByPath(path);
     }
 
+    if (!route) {
+      for (const optimizedRoute of this.optimizedRoutes) {
+        let keys = [];
+        const regexp = Regexp(optimizedRoute.path, keys);
+
+        const regexpResult = regexp.exec(param);
+        if (regexpResult) {
+          console.log("FOUND");
+          route = optimizedRoute;
+
+          for (const index in keys) {
+            const key = keys[index];
+            params[key.name] = regexpResult[parseInt(index) + 1];
+          }
+        }
+        console.log("params:", params);
+      }
+    }
+
     console.log("route", route);
 
-    if (route.hasOwnProperty("component")) {
+    if (route && route.hasOwnProperty("component")) {
       let routeRecord = this.createRouteRecord(
         route,
         path ? path : route.path,
@@ -199,6 +224,9 @@ export default class VuexpRouterNative {
         meta
       );
       console.log("routeRecord", routeRecord);
+      if (routeRecord.component) {
+        console.log("componenntt");
+      }
       this.routeHistory = this.routeHistory
         .slice(0, this.routeIndex + 1)
         .concat(routeRecord);

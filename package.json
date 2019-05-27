@@ -16,6 +16,7 @@
   ],
   "dependencies": {
     "nativescript-globalevents": "^1.2.2",
+    "path-to-regexp": "^3.0.0",
     "vue-router": "3.0.6"
   },
   "devDependencies": {

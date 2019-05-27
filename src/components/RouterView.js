@@ -4,6 +4,8 @@ export default {
   render(_, { props, children, parent, data }) {
     const h = parent.$createElement;
 
+    console.log("render start");
+
     data.routerView = true;
 
     //const h = parent.$createElement;
@@ -35,23 +37,39 @@ export default {
       parent = parent.$parent;
     }
     data.routerViewDepth = depth;
+    console.log("depth", depth);
 
-    const optimizedRoute = parent.$router.optimizedRoutes.find(
+    let optimizedRoute = parent.$router.optimizedRoutes.find(
       item => item.path === route.path
     );
 
+    console.log("optimized route");
+
     if (!optimizedRoute) {
-      return h();
+      if (route.component) {
+        optimizedRoute = route;
+      } else {
+        return h();
+      }
     }
 
     const pathArray = optimizedRoute.path.split("/").filter(Boolean);
+    console.log("pathArray");
+    console.log(pathArray);
 
     let depthPath = "/";
 
     for (let i = 0; i <= depth; i++) {
-      depthPath += pathArray[i] + "/";
+      if (pathArray[i]) {
+        depthPath += pathArray[i];
+      }
+      depthPath += "/";
     }
-    depthPath = depthPath.slice(0, -1);
+    if (depth === 0) {
+      depthPath = depthPath.slice(0, -1);
+    }
+
+    console.log(depthPath);
 
     let matched;
 
