@@ -1,7 +1,6 @@
 require("nativescript-globalevents"); // need only once in the application total
 import * as application from "tns-core-modules/application"; // eslint-disable-line
 import Regexp from "path-to-regexp";
-import { routeMatch } from "./utils/routeMatcher";
 import { install } from "./install";
 
 export default class VuexpRouterNative {
@@ -27,17 +26,6 @@ export default class VuexpRouterNative {
     this.handleBackButton();
 
     this.app = null;
-
-    console.log("optimized: ");
-    for (const r of this.optimizedRoutes) {
-      console.log(r.path + " - " + r.component.name);
-      if (r.children) {
-        console.log("has children");
-      }
-    }
-
-    //let p = routeMatch(this.optimizedRoutes, "/parent/");
-    //console.log(p.optimizedRoute.component.name);
   }
 
   // Convert Routes to array
@@ -55,6 +43,7 @@ export default class VuexpRouterNative {
       optimizedRoute.path = parentRoute
         ? parentRoute.path + "/" + route.path
         : route.path;
+      optimizedRoute.parent = parentRoute ? parentRoute : null;
       optimized.push(optimizedRoute);
 
       if (route.children) {
@@ -205,15 +194,11 @@ export default class VuexpRouterNative {
       throw "Unsupported goTo param!";
     }
 
-    //console.log("params", params);
-
     // Finding Route
     let route;
 
     if (useNames) {
       route = this.getRouteByName(param.name);
-      console.log("named route");
-      console.log(route);
     } else {
       route = this.getRouteByPath(path);
     }
@@ -225,7 +210,6 @@ export default class VuexpRouterNative {
 
         const regexpResult = regexp.exec(param);
         if (regexpResult) {
-          //console.log("FOUND");
           route = optimizedRoute;
 
           for (const index in keys) {
@@ -233,11 +217,8 @@ export default class VuexpRouterNative {
             params[key.name] = regexpResult[parseInt(index) + 1];
           }
         }
-        //console.log("params:", params);
       }
     }
-
-    //console.log("route", route);
 
     if (route && route.hasOwnProperty("component")) {
       console.log("routeRecord found");
@@ -248,10 +229,6 @@ export default class VuexpRouterNative {
         params,
         meta
       );
-      //console.log("routeRecord", routeRecord);
-      if (routeRecord.component) {
-        //console.log("componenntt");
-      }
       this.routeHistory = this.routeHistory
         .slice(0, this.routeIndex + 1)
         .concat(routeRecord);
