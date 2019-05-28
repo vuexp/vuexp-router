@@ -36,10 +36,17 @@ export default class VuexpRouterNative {
       }
     }
 
-    let p = routeMatch(this.optimizedRoutes, "/parent/");
-    console.log(p.optimizedRoute.component.name);
+    //let p = routeMatch(this.optimizedRoutes, "/parent/");
+    //console.log(p.optimizedRoute.component.name);
   }
 
+  // Convert Routes to array
+  // Like as:
+  // ["/",
+  // "/about",
+  // "/parent",
+  // "/parent/child-one",
+  // "/parent/child-two"]
   optimizeRoutes(routes) {
     let optimized = [];
 
