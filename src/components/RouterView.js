@@ -42,7 +42,11 @@ export default {
 
     if (component) {
       console.log("RENDERED:", component.name);
-      return h(component, data, children);
+      if (parent.$router.useFrameWrapper) {
+        return h("Frame", {}, [h(component, data, children)]);
+      } else {
+        return h(component, data, children);
+      }
     } else {
       return h();
     }

@@ -18,6 +18,7 @@ export default class VuexpRouterNative {
 
     this.routes = options.routes;
     this.optimizedRoutes = this.optimizeRoutes(this.routes);
+    this.useFrameWrapper = options.useFrameWrapper || false;
 
     this.routeHistory = [];
     this.routeIndex = 0;
