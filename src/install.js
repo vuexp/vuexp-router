@@ -1,4 +1,5 @@
 import RouterView from "./components/RouterView.js";
+import RouterLink from "./components/RouterLink.js";
 
 export function install(Vue) {
   console.log("installing");
@@ -42,8 +43,9 @@ export function install(Vue) {
   Object.defineProperty(Vue.prototype, "$route", {
     get() {
       return this._routerRoot._route;
-    },
+    }
   });
 
   Vue.component("RouterView", RouterView);
+  Vue.component("RouterLink", RouterLink);
 }

@@ -1,3 +1,6 @@
+require("nativescript-globalevents"); // need only once in the application total
+import * as application from "tns-core-modules/application"; // eslint-disable-line
+import Regexp from "path-to-regexp";
 import { install } from "./install";
 
 export default class VuexpRouterNative {
@@ -15,25 +18,46 @@ export default class VuexpRouterNative {
 
     this.routes = options.routes;
     this.optimizedRoutes = this.optimizeRoutes(this.routes);
-    this.initDefaultRoute();
+    this.useFrameWrapper = options.useFrameWrapper || false;
 
     this.routeHistory = [];
+    this.routeIndex = 0;
+
+    this.initDefaultRoute();
+    this.handleBackButton();
 
     this.app = null;
   }
 
+  // Convert Routes to array
+  // Like as:
+  // ["/",
+  // "/about",
+  // "/parent",
+  // "/parent/child-one",
+  // "/parent/child-two"]
   optimizeRoutes(routes) {
     let optimized = [];
 
     const buildRoute = (route, parentRoute) => {
-      optimized.push({
-        path: parentRoute ? parentRoute.path + "/" + route.path : route.path,
-        component: route.component
-      });
+      let optimizedRoute = route;
+      optimizedRoute.path = parentRoute
+        ? parentRoute.path + "/" + route.path
+        : route.path;
+      optimizedRoute.parent = parentRoute ? parentRoute : null;
+      optimized.push(optimizedRoute);
 
       if (route.children) {
         for (const child of route.children) {
-          buildRoute(child, route);
+          // NOTE absolute path here!
+          // this allows you to leverage the component nesting without being
+          // limited to the nested URL.
+          // components rendered at /baz: Root -> Parent -> Baz
+          if (child.path.startsWith("/")) {
+            buildRoute(child);
+          } else {
+            buildRoute(child, route);
+          }
         }
       }
     };
@@ -51,7 +75,42 @@ export default class VuexpRouterNative {
 
   initDefaultRoute() {
     if (!this.optimizedRoutes.find(route => route.path === "/")) {
-      throw "Missing default '/' route";
+      throw "Missing default '/' route1";
+    }
+    const defaultRoute = this.createRoute();
+    this.routeHistory.push(defaultRoute);
+  }
+
+  handleBackButton() {
+    if (application.android) {
+      application.android.on(
+        application.AndroidApplication.activityBackPressedEvent,
+        data => {
+          //console.log("handle back button");
+          //console.log("can go back:", this.canGoBack());
+          data.cancel = true;
+
+          if (this.canGoBack()) {
+            this.back();
+          } else {
+            this.exit();
+          }
+        }
+      );
+    }
+  }
+
+  canGoBack() {
+    const targetIndex = this.routeIndex - 1;
+
+    return !(targetIndex < 0 || targetIndex >= this.routeHistory.length);
+  }
+
+  exit() {
+    if (application.android) {
+      application.android.foregroundActivity.finish();
+    } else if (application.ios) {
+      exit(0);
     }
   }
 
@@ -75,10 +134,10 @@ export default class VuexpRouterNative {
 
   /*
     // literal string path
-    router.push('home')
+    router.push('home') --supported
     
     // object
-    router.push({ path: 'home' })
+    router.push({ path: 'home' }) --supported
     
     // named route
     router.push({ name: 'user', params: { userId: '123' } })
@@ -99,26 +158,106 @@ export default class VuexpRouterNative {
     };
   }
 
-  push(param) {
-    console.log("Push");
-    if (typeof param === "string") {
-      const route = this.getRouteByPath(param);
+  createRouteRecord(route, path, query, params, meta) {
+    return {
+      route: route,
+      component: route.component,
+      name: route.name,
+      path: path,
+      query: query,
+      params: params,
+      fullPath: path,
+      meta: meta
+    };
+  }
 
-      if (route.hasOwnProperty("component")) {
-        this.routeHistory.push(route);
-        this.app._route = route;
-      } else {
-        throw "Component undefined";
-      }
+  push(param) {
+    console.log("Push", param);
+    let path;
+    let query = {};
+    let params = {};
+    let meta = {};
+    let useNames = false;
+    if (typeof param === "string") {
+      // TODO check route params in string -- /user/evan -> /user/:username
+      path = param;
     } else if (!(param instanceof Array) && param instanceof Object) {
-      // literal string path
-      //ex: router.push('home')
+      if (param.hasOwnProperty("path")) {
+        path = param.path;
+      } else if (param.hasOwnProperty("name")) {
+        useNames = true;
+
+        if (param.hasOwnProperty("params")) {
+          params = param.params;
+        }
+      }
     } else {
       throw "Unsupported goTo param!";
     }
+
+    // Finding Route
+    let route;
+
+    if (useNames) {
+      route = this.getRouteByName(param.name);
+    } else {
+      route = this.getRouteByPath(path);
+    }
+
+    if (!route) {
+      for (const optimizedRoute of this.optimizedRoutes) {
+        let keys = [];
+        const regexp = Regexp(optimizedRoute.path, keys);
+
+        const regexpResult = regexp.exec(param);
+        if (regexpResult) {
+          route = optimizedRoute;
+
+          for (const index in keys) {
+            const key = keys[index];
+            params[key.name] = regexpResult[parseInt(index) + 1];
+          }
+        }
+      }
+    }
+
+    if (route && route.hasOwnProperty("component")) {
+      console.log("routeRecord found");
+      let routeRecord = this.createRouteRecord(
+        route,
+        path ? path : route.path,
+        query,
+        params,
+        meta
+      );
+      this.routeHistory = this.routeHistory
+        .slice(0, this.routeIndex + 1)
+        .concat(routeRecord);
+      this.routeIndex++;
+
+      this.app._route = routeRecord;
+    } else {
+      throw "Component undefined";
+    }
   }
 
-  goBack() {}
+  go(n) {
+    const targetIndex = this.routeIndex + n;
+    if (targetIndex < 0 || targetIndex >= this.routeHistory.length) {
+      return;
+    }
+    let route = this.routeHistory[targetIndex];
+    this.routeIndex = targetIndex;
+    this.app._route = route;
+  }
+
+  back() {
+    this.go(-1);
+  }
+
+  forward() {
+    this.go(1);
+  }
 }
 
 VuexpRouterNative.install = install;

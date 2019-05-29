@@ -1,12 +1,13 @@
+import { routeMatcher } from "../utils/routeMatcher";
+
 export default {
   name: "RouterView",
-  functional: true,
   render(_, { props, children, parent, data }) {
-    const h = parent.$createElement;
+    console.log("render start");
 
     data.routerView = true;
 
-    //const h = parent.$createElement;
+    const h = parent.$createElement;
     const name = props.name;
     const route = parent.$route;
     const cache = parent._routerViewCache || (parent._routerViewCache = {});
@@ -29,43 +30,26 @@ export default {
     }
     data.routerViewDepth = depth;
 
-    const optimizedRoute = parent.$router.optimizedRoutes.find(
-      item => item.path === route.path
+    let matchedRoute = routeMatcher(
+      parent.$router.optimizedRoutes,
+      route.path,
+      depth + 1
     );
 
-    if (!optimizedRoute) {
-      return h();
-    }
+    const component = matchedRoute
+      ? matchedRoute.optimizedRoute.component
+      : null;
 
-    const pathArray = optimizedRoute.path.split("/").filter(Boolean);
-
-    let depthPath = "/";
-
-    for (let i = 0; i <= depth; i++) {
-      depthPath += pathArray[i] + "/";
-    }
-    depthPath = depthPath.slice(0, -1);
-
-    let matched;
-
-    if (!pathArray.length) {
-      matched = optimizedRoute;
+    if (component) {
+      console.log("RENDERED:", component.name);
+      if (parent.$router.useFrameWrapper) {
+        return h("Frame", {}, [h(component, data, children)]);
+      } else {
+        return h(component, data, children);
+      }
     } else {
-      matched = parent.$router.optimizedRoutes.find(
-        item => item.path === depthPath
-      );
-    }
-
-    //const matched = route.matched[depth];
-    // render empty node if no matched route
-    if (!matched) {
-      cache[name] = null;
       return h();
     }
-    console.log("Rendered: " + matched.component.name); //eslint-disable-line
-
-    const component = (cache[name] = matched.component);
-
-    return h("Frame", {}, [h(component, data, children)]);
-  }
+  },
+  functional: true
 };
