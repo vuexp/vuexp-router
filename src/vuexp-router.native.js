@@ -1,4 +1,6 @@
 require("nativescript-globalevents"); // need only once in the application total
+const Page = require("ui/page").Page;
+import { topmost } from "tns-core-modules/ui/frame";
 import * as application from "tns-core-modules/application"; // eslint-disable-line
 import Regexp from "path-to-regexp";
 import { install } from "./install";
@@ -82,22 +84,18 @@ export default class VuexpRouterNative {
   }
 
   handleBackButton() {
-    if (application.android) {
-      application.android.on(
-        application.AndroidApplication.activityBackPressedEvent,
-        data => {
-          //console.log("handle back button");
-          //console.log("can go back:", this.canGoBack());
-          data.cancel = true;
+    Page.on(Page.navigatingToEvent, event => {
+      console.log(event.isBackNavigation);
+      if (event.isBackNavigation) {
+        console.log("routeIndex", this.routeIndex);
 
-          if (this.canGoBack()) {
-            this.back();
-          } else {
-            this.exit();
-          }
-        }
-      );
-    }
+        this.routeIndex--;
+
+        let route = this.routeHistory[this.routeIndex];
+        route.isBackNavigation = true;
+        this.app._route = route;
+      }
+    });
   }
 
   canGoBack() {

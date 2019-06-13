@@ -38,6 +38,11 @@ export function routeMatcher(optimizedRoutes, path, depth) {
         return null;
       }
 
+      console.log("path", path);
+      console.log("route.path", route.path);
+      console.log("params");
+      console.log(params);
+
       return {
         optimizedRoute: route,
         path: optimizedRoute.path,

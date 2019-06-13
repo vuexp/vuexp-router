@@ -12,6 +12,11 @@ export default {
     const route = parent.$route;
     const cache = parent._routerViewCache || (parent._routerViewCache = {});
 
+    if (route.hasOwnProperty("isBackNavigation") && route.isBackNavigation) {
+      console.log("isBackNavigation:", route.isBackNavigation);
+      return h();
+    }
+
     // determine current view depth, also check to see if the tree
     // has been toggled inactive but kept-alive.
     let depth = 0;
@@ -35,6 +40,8 @@ export default {
       route.path,
       depth + 1
     );
+    console.log("matchedRoute");
+    console.log(matchedRoute);
 
     const component = matchedRoute
       ? matchedRoute.optimizedRoute.component
@@ -42,11 +49,7 @@ export default {
 
     if (component) {
       console.log("RENDERED:", component.name);
-      if (parent.$router.useFrameWrapper) {
-        return h("Frame", {}, [h(component, data, children)]);
-      } else {
-        return h(component, data, children);
-      }
+      return h(component, data, children);
     } else {
       return h();
     }
