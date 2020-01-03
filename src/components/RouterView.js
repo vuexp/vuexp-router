@@ -10,11 +10,11 @@ export default {
     const h = parent.$createElement;
     const name = props.name;
     const route = parent.$route;
-    const cache = parent._routerViewCache || (parent._routerViewCache = {});
+    let cache = parent._routerViewCache || (parent._routerViewCache = {});
 
     if (route.hasOwnProperty("isBackNavigation") && route.isBackNavigation) {
-      console.log("isBackNavigation:", route.isBackNavigation);
-      return h();
+      console.log("isBackNavigation :", route.isBackNavigation);
+      return cache;
     }
 
     // determine current view depth, also check to see if the tree
@@ -47,12 +47,16 @@ export default {
       ? matchedRoute.optimizedRoute.component
       : null;
 
+    let render;
+
     if (component) {
       console.log("RENDERED:", component.name);
-      return h(component, data, children);
+      render = h(component, data, children);
+      parent._routerViewCache = render;
     } else {
-      return h();
+      render = h();
     }
+    return render;
   },
   functional: true
 };

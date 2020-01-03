@@ -5,6 +5,8 @@ import * as application from "tns-core-modules/application"; // eslint-disable-l
 import Regexp from "path-to-regexp";
 import { install } from "./install";
 
+import Vue from 'nativescript-vue';
+
 export default class VuexpRouterNative {
   static install() {}
 
@@ -220,7 +222,13 @@ export default class VuexpRouterNative {
     }
 
     if (route && route.hasOwnProperty("component")) {
+
+      let isPageNavigation = this.isPageNavigation(this.app._route, route);
+
       console.log("routeRecord found");
+      console.log("isPageNavigation:", isPageNavigation);
+
+
       let routeRecord = this.createRouteRecord(
         route,
         path ? path : route.path,
@@ -237,6 +245,17 @@ export default class VuexpRouterNative {
     } else {
       throw "Component undefined";
     }
+  }
+
+  isPageNavigation(from, to){
+    console.log("page route check")
+
+    let routeFrom = this.getRouteByPath(from.path);
+    let routeTo = this.getRouteByPath(from.path);
+
+    console.log(routeFrom);
+
+    return false
   }
 
   go(n) {
