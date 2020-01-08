@@ -1,17 +1,15 @@
 require("nativescript-globalevents"); // need only once in the application total
 const Page = require("ui/page").Page;
-import { topmost } from "tns-core-modules/ui/frame";
-import * as application from "tns-core-modules/application"; // eslint-disable-line
-import Regexp from "path-to-regexp";
+import Vue from "nativescript-vue";
 import { install } from "./install";
-
-import Vue from 'nativescript-vue';
 
 export default class VuexpRouterNative {
   static install() {}
 
   constructor(options) {
-    console.log("constructor");
+    if (TNS_ENV === "development") {
+      console.log("VueXP Router initializing.."); //eslint-disable-line
+    }
     if (
       typeof options !== "object" ||
       !options.hasOwnProperty("routes") ||
@@ -21,8 +19,6 @@ export default class VuexpRouterNative {
     }
 
     this.routes = options.routes;
-    this.optimizedRoutes = this.optimizeRoutes(this.routes);
-    this.useFrameWrapper = options.useFrameWrapper || false;
 
     this.routeHistory = [];
     this.routeIndex = 0;
@@ -31,87 +27,52 @@ export default class VuexpRouterNative {
     this.handleBackButton();
 
     this.app = null;
-  }
 
-  // Convert Routes to array
-  // Like as:
-  // ["/",
-  // "/about",
-  // "/parent",
-  // "/parent/child-one",
-  // "/parent/child-two"]
-  optimizeRoutes(routes) {
-    let optimized = [];
+    const _this = this;
 
-    const buildRoute = (route, parentRoute) => {
-      let optimizedRoute = route;
-      optimizedRoute.path = parentRoute
-        ? parentRoute.path + "/" + route.path
-        : route.path;
-      optimizedRoute.parent = parentRoute ? parentRoute : null;
-      optimized.push(optimizedRoute);
-
-      if (route.children) {
-        for (const child of route.children) {
-          // NOTE absolute path here!
-          // this allows you to leverage the component nesting without being
-          // limited to the nested URL.
-          // components rendered at /baz: Root -> Parent -> Baz
-          if (child.path.startsWith("/")) {
-            buildRoute(child);
-          } else {
-            buildRoute(child, route);
-          }
-        }
+    Object.defineProperty(Vue.prototype, "$router", {
+      get() {
+        return _this;
       }
-    };
-
-    routes.forEach(route => {
-      buildRoute(route);
     });
 
-    return optimized;
+    Object.defineProperty(Vue.prototype, "$route", {
+      get() {
+        return _this.route;
+      }
+    });
+    Vue.util.defineReactive(Vue.prototype, "$route", this.route);
   }
 
   init(app) {
     this.app = app;
   }
 
-  initDefaultRoute() {
-    if (!this.optimizedRoutes.find(route => route.path === "/")) {
-      throw "Missing default '/' route1";
+  routeMatcher(path) {
+    if (typeof path === "string") {
+      const matchedRoute = this.routes.find(item => item.path === path);
+      return matchedRoute ? matchedRoute : false;
     }
-    const defaultRoute = this.createRoute();
-    this.routeHistory.push(defaultRoute);
+    return false;
+  }
+
+  initDefaultRoute() {
+    if (!this.routes.find(route => route.path === "/")) {
+      throw "Missing default '/' route";
+    }
+    this.route = this.createRoute();
+    this.routeHistory.push(this.route);
   }
 
   handleBackButton() {
     Page.on(Page.navigatingToEvent, event => {
-      console.log(event.isBackNavigation);
       if (event.isBackNavigation) {
-        console.log("routeIndex", this.routeIndex);
-
-        this.routeIndex--;
-
-        let route = this.routeHistory[this.routeIndex];
-        route.isBackNavigation = true;
-        this.app._route = route;
+        if (this.routeIndex > 0) {
+          this.routeIndex--;
+          this.route = this.routeHistory[this.routeIndex];
+        }
       }
     });
-  }
-
-  canGoBack() {
-    const targetIndex = this.routeIndex - 1;
-
-    return !(targetIndex < 0 || targetIndex >= this.routeHistory.length);
-  }
-
-  exit() {
-    if (application.android) {
-      application.android.foregroundActivity.finish();
-    } else if (application.ios) {
-      exit(0);
-    }
   }
 
   createRoute(path, query, params, fullPath, meta) {
@@ -124,156 +85,29 @@ export default class VuexpRouterNative {
     };
   }
 
-  getRouteByPath(path) {
-    return this.optimizedRoutes.find(item => item.path === path);
-  }
+  push(args, options) {
+    const matchedRoute = this.routeMatcher(args);
 
-  getRouteByName(name) {
-    return this.optimizedRoutes.find(item => item.name === name);
-  }
-
-  /*
-    // literal string path
-    router.push('home') --supported
-    
-    // object
-    router.push({ path: 'home' }) --supported
-    
-    // named route
-    router.push({ name: 'user', params: { userId: '123' } })
-    
-    // with query, resulting in /register?plan=private
-    router.push({ path: 'register', query: { plan: 'private' } })
-   */
-
-  get history() {
-    return {
-      current: {
-        path: "/",
-        query: {},
-        params: {},
-        fullPath: "/",
-        meta: {}
-      }
-    };
-  }
-
-  createRouteRecord(route, path, query, params, meta) {
-    return {
-      route: route,
-      component: route.component,
-      name: route.name,
-      path: path,
-      query: query,
-      params: params,
-      fullPath: path,
-      meta: meta
-    };
-  }
-
-  push(param) {
-    console.log("Push", param);
-    let path;
-    let query = {};
-    let params = {};
-    let meta = {};
-    let useNames = false;
-    if (typeof param === "string") {
-      // TODO check route params in string -- /user/evan -> /user/:username
-      path = param;
-    } else if (!(param instanceof Array) && param instanceof Object) {
-      if (param.hasOwnProperty("path")) {
-        path = param.path;
-      } else if (param.hasOwnProperty("name")) {
-        useNames = true;
-
-        if (param.hasOwnProperty("params")) {
-          params = param.params;
-        }
-      }
-    } else {
-      throw "Unsupported goTo param!";
-    }
-
-    // Finding Route
-    let route;
-
-    if (useNames) {
-      route = this.getRouteByName(param.name);
-    } else {
-      route = this.getRouteByPath(path);
-    }
-
-    if (!route) {
-      for (const optimizedRoute of this.optimizedRoutes) {
-        let keys = [];
-        const regexp = Regexp(optimizedRoute.path, keys);
-
-        const regexpResult = regexp.exec(param);
-        if (regexpResult) {
-          route = optimizedRoute;
-
-          for (const index in keys) {
-            const key = keys[index];
-            params[key.name] = regexpResult[parseInt(index) + 1];
-          }
-        }
-      }
-    }
-
-    if (route && route.hasOwnProperty("component")) {
-
-      let isPageNavigation = this.isPageNavigation(this.app._route, route);
-
-      console.log("routeRecord found");
-      console.log("isPageNavigation:", isPageNavigation);
-
-
-      let routeRecord = this.createRouteRecord(
-        route,
-        path ? path : route.path,
-        query,
-        params,
-        meta
+    if (matchedRoute) {
+      const component = matchedRoute ? matchedRoute.component : component;
+      const toRoute = this.createRoute(
+        matchedRoute.path,
+        null,
+        matchedRoute.path
       );
-      this.routeHistory = this.routeHistory
-        .slice(0, this.routeIndex + 1)
-        .concat(routeRecord);
       this.routeIndex++;
-
-      this.app._route = routeRecord;
+      this.routeHistory.push(toRoute);
+      this.route = toRoute;
+      this.app.$navigateTo(component, options);
     } else {
-      throw "Component undefined";
+      if (TNS_ENV === "development") {
+        throw new Error(`Navigating to a route that does not exist: ${args}`);
+      }
     }
   }
 
-  isPageNavigation(from, to){
-    console.log("page route check")
-
-    let routeFrom = this.getRouteByPath(from.path);
-    let routeTo = this.getRouteByPath(from.path);
-
-    console.log(routeFrom);
-
-    return false
-  }
-
-  go(n) {
-    const targetIndex = this.routeIndex + n;
-    if (targetIndex < 0 || targetIndex >= this.routeHistory.length) {
-      return;
-    }
-    let route = this.routeHistory[targetIndex];
-    this.routeIndex = targetIndex;
-    this.app._route = route;
-  }
-
-  back() {
-    this.go(-1);
-  }
-
-  forward() {
-    this.go(1);
+  back(...args) {
+    this.app.$navigateBack(args);
   }
 }
 

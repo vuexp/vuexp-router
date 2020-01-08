@@ -1,7 +1,7 @@
 {
   "name": "vuexp-router",
-  "version": "0.0.1",
-  "description": "Vuexp Router",
+  "version": "0.0.1-alpha.1",
+  "description": "VueXP Router",
   "main": "src/vuexp-router",
   "repository": {
     "type": "git",

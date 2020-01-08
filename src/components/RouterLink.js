@@ -15,7 +15,6 @@ export default {
       {
         on: {
           tap: () => {
-            console.log("tapped1");
             parent.$router.push(props.to);
           }
         },
