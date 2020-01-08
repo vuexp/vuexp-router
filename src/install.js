@@ -2,8 +2,6 @@ import RouterView from "./components/RouterView.vue";
 import RouterLink from "./components/RouterLink.js";
 
 export function install(Vue) {
-  console.log("installing");
-
   const isDef = v => v !== undefined;
 
   Vue.mixin({
