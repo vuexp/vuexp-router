@@ -52,6 +52,9 @@ export default class VuexpRouterNative {
     if (typeof path === "string") {
       const matchedRoute = this.routes.find(item => item.path === path);
       return matchedRoute ? matchedRoute : false;
+    } else if (typeof path === "object" && 'name' in path) {
+      const matchedRoute = this.routes.find(item => 'name' in item && item.name === path);
+      return matchedRoute ? matchedRoute : false;
     }
     return false;
   }
